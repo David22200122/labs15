@@ -67,5 +67,8 @@ jobs:
       - name: Instalar dependencias Cypress
         run: npm install
 
+      - name: Instalar binario de Cypress
+        run: npx cypress install
+
       - name: Ejecutar pruebas Cypress
         run: npx cypress run --config baseUrl=${{ needs.deploy.outputs.preview_url }}
