@@ -1,4 +1,4 @@
-name: CI/CD React Vercel
+name: CI/CD React Vercel Cypress
 
 on:
   push:
@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Descargar código
+      - name: Descargar código React
         uses: actions/checkout@v4
 
       - name: Configurar Node.js
@@ -31,12 +31,41 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
 
+    outputs:
+      preview_url: ${{ steps.deploy-vercel.outputs.preview_url }}
+
     steps:
-      - name: Descargar código
+      - name: Descargar código React
         uses: actions/checkout@v4
 
       - name: Instalar Vercel CLI
         run: npm install -g vercel
 
       - name: Desplegar en Vercel
-        run: vercel --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
+        id: deploy-vercel
+        run: |
+          vercel --prod --yes --token=${{ secrets.VERCEL_TOKEN }} > vercel-output.txt
+          cat vercel-output.txt
+          echo "preview_url=$(cat vercel-output.txt | grep -Eo 'https://[^ ]+\.vercel\.app' | tail -1)" >> $GITHUB_OUTPUT
+
+  cypress-e2e:
+    needs: deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar repositorio Cypress
+        uses: actions/checkout@v4
+        with:
+          repository: David22200122/cypress15
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Instalar dependencias Cypress
+        run: npm install
+
+      - name: Ejecutar pruebas Cypress
+        run: npx cypress run --config baseUrl=${{ needs.deploy.outputs.preview_url }}
